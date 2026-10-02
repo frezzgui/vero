@@ -1,0 +1,1906 @@
+```html
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width,
+                   initial-scale=1.0,
+                   maximum-scale=1.0,
+                   user-scalable=no">
+
+    <meta name="theme-color" content="#667eea">
+
+    <meta name="description"
+          content="Gestion intelligente de votre réfrigérateur">
+
+    <link rel="manifest" href="manifest.json">
+
+    <title>Frigo Smart</title>
+
+    <!-- Scanner de codes-barres -->
+    <script src="https://unpkg.com/html5-qrcode"
+            type="text/javascript"></script>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                linear-gradient(
+                    135deg,
+                    #667eea 0%,
+                    #764ba2 100%
+                );
+
+            padding: 12px;
+            color: #2d3748;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+            margin: auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            padding: 18px 5px 25px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 7px;
+        }
+
+        header p {
+            font-size: .95rem;
+            opacity: .9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 18px;
+            box-shadow:
+                0 8px 25px rgba(0,0,0,.16);
+        }
+
+        .title {
+            font-size: 1.25rem;
+            color: #4a5568;
+            margin-bottom: 18px;
+        }
+
+        /* =========================
+           SCANNER
+        ========================= */
+
+        #reader {
+            width: 100%;
+            overflow: hidden;
+            border-radius: 16px;
+            display: none;
+        }
+
+        #reader video {
+            width: 100% !important;
+            border-radius: 16px;
+        }
+
+        #reader__dashboard {
+            padding: 10px !important;
+        }
+
+        #reader__dashboard_section_csr button {
+            background: #667eea !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 10px !important;
+            padding: 10px 15px !important;
+        }
+
+        .scanner-message {
+            text-align: center;
+            color: #718096;
+            font-size: .9rem;
+            margin: 12px 0;
+        }
+
+        .scan-code {
+            display: none;
+            background: #f0fff4;
+            border: 2px solid #9ae6b4;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 15px;
+            word-break: break-all;
+        }
+
+        .scan-code strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* =========================
+           BOUTONS
+        ========================= */
+
+        button {
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn {
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .primary {
+            background:
+                linear-gradient(
+                    135deg,
+                    #667eea,
+                    #764ba2
+                );
+            color: white;
+        }
+
+        .success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .secondary {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        /* =========================
+           FORMULAIRE
+        ========================= */
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            background: white;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* =========================
+           PRODUITS
+        ========================= */
+
+        .product {
+            padding: 15px;
+            border-radius: 14px;
+            margin-bottom: 12px;
+            background: #f7fafc;
+            border-left: 5px solid #48bb78;
+        }
+
+        .product.warning {
+            background: #fffaf0;
+            border-left-color: #ed8936;
+        }
+
+        .product.expired {
+            background: #fff5f5;
+            border-left-color: #f56565;
+        }
+
+        .product-name {
+            font-size: 1.05rem;
+            font-weight: bold;
+        }
+
+        .product-code {
+            color: #718096;
+            font-size: .8rem;
+            margin-top: 4px;
+        }
+
+        .product-date {
+            margin-top: 8px;
+            line-height: 1.5;
+            font-size: .9rem;
+        }
+
+        .delete {
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 9px;
+            padding: 9px 12px;
+            margin-top: 12px;
+            font-weight: bold;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 25px 10px;
+            color: #718096;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        /* =========================
+           NOTIFICATION DANS L'APP
+        ========================= */
+
+        #toast {
+            position: fixed;
+            top: 15px;
+            left: 12px;
+            right: 12px;
+            z-index: 99999;
+
+            display: none;
+
+            padding: 15px;
+            border-radius: 14px;
+
+            color: white;
+            text-align: center;
+            font-weight: bold;
+
+            box-shadow:
+                0 8px 25px rgba(0,0,0,.25);
+        }
+
+        #toast.success {
+            background: #38a169;
+        }
+
+        #toast.warning {
+            background: #dd6b20;
+        }
+
+        #toast.error {
+            background: #e53e3e;
+        }
+
+        /* =========================
+           INFO
+        ========================= */
+
+        .info {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: .85rem;
+            line-height: 1.5;
+        }
+
+        .notification-status {
+            margin-top: 10px;
+            color: #718096;
+            font-size: .85rem;
+        }
+
+        @media (max-width: 480px) {
+
+            body {
+                padding: 9px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            header h1 {
+                font-size: 1.75rem;
+            }
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+<div id="toast"></div>
+
+
+<div class="container">
+
+    <!-- =========================
+         HEADER
+    ========================== -->
+
+    <header>
+
+        <h1>🧊 Frigo Smart</h1>
+
+        <p>
+            Gérez votre frigo simplement
+        </p>
+
+    </header>
+
+
+    <!-- =========================
+         SCANNER
+    ========================== -->
+
+    <div class="card">
+
+        <div class="title">
+            📷 Scanner un produit
+        </div>
+
+
+        <div id="reader"></div>
+
+
+        <div id="scannerMessage"
+             class="scanner-message">
+
+            Appuyez sur le bouton pour
+            scanner un code-barres.
+        </div>
+
+
+        <div id="scanCode"
+             class="scan-code">
+
+            <strong>
+                ✅ Code détecté
+            </strong>
+
+            <span id="codeValue"></span>
+
+        </div>
+
+
+        <button
+            id="startScan"
+            class="btn primary">
+
+            📷 Démarrer le scanner
+
+        </button>
+
+
+        <button
+            id="stopScan"
+            class="btn secondary"
+            style="display:none;">
+
+            ✕ Arrêter le scanner
+
+        </button>
+
+
+        <div class="info">
+
+            💡 Pour les produits alimentaires,
+            le code EAN-13 est généralement le code
+            imprimé sous les barres du produit.
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         AJOUT
+    ========================== -->
+
+    <div class="card">
+
+        <div class="title">
+            ➕ Ajouter un produit
+        </div>
+
+
+        <form id="productForm">
+
+            <div class="form-group">
+
+                <label for="productName">
+                    Nom du produit
+                </label>
+
+                <input
+                    id="productName"
+                    type="text"
+                    placeholder="Ex : Lait"
+                    required>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="productDate">
+                    Date de péremption
+                </label>
+
+                <input
+                    id="productDate"
+                    type="date"
+                    required>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="productBarcode">
+                    Code-barres
+                </label>
+
+                <input
+                    id="productBarcode"
+                    type="text"
+                    placeholder="Optionnel">
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="btn success">
+
+                ✅ Ajouter au frigo
+
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <!-- =========================
+         NOTIFICATIONS
+    ========================== -->
+
+    <div class="card">
+
+        <div class="title">
+            🔔 Notifications
+        </div>
+
+
+        <button
+            id="notificationButton"
+            class="btn secondary">
+
+            🔔 Activer les notifications
+
+        </button>
+
+
+        <div id="notificationStatus"
+             class="notification-status">
+
+            Statut : vérification...
+
+        </div>
+
+
+        <div class="info">
+
+            Les notifications du téléphone dépendent
+            des autorisations Android et du navigateur.
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         PRODUITS
+    ========================== -->
+
+    <div class="card">
+
+        <div class="title">
+            🛒 Mon frigo
+        </div>
+
+
+        <div id="productsList"></div>
+
+    </div>
+
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   FRIGO SMART
+========================================================= */
+
+
+/* =========================
+   DONNÉES
+========================= */
+
+let products = [];
+
+try {
+
+    products =
+        JSON.parse(
+            localStorage.getItem(
+                "frigoProducts"
+            )
+        ) || [];
+
+} catch {
+
+    products = [];
+
+}
+
+
+/* =========================
+   DOM
+========================= */
+
+const reader =
+    document.getElementById(
+        "reader"
+    );
+
+const startScan =
+    document.getElementById(
+        "startScan"
+    );
+
+const stopScan =
+    document.getElementById(
+        "stopScan"
+    );
+
+const scannerMessage =
+    document.getElementById(
+        "scannerMessage"
+    );
+
+const scanCode =
+    document.getElementById(
+        "scanCode"
+    );
+
+const codeValue =
+    document.getElementById(
+        "codeValue"
+    );
+
+const productForm =
+    document.getElementById(
+        "productForm"
+    );
+
+const productName =
+    document.getElementById(
+        "productName"
+    );
+
+const productDate =
+    document.getElementById(
+        "productDate"
+    );
+
+const productBarcode =
+    document.getElementById(
+        "productBarcode"
+    );
+
+const productsList =
+    document.getElementById(
+        "productsList"
+    );
+
+const toast =
+    document.getElementById(
+        "toast"
+    );
+
+const notificationButton =
+    document.getElementById(
+        "notificationButton"
+    );
+
+const notificationStatus =
+    document.getElementById(
+        "notificationStatus"
+    );
+
+
+/* =========================
+   DATE
+========================= */
+
+function todayString() {
+
+    const date =
+        new Date();
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+
+productDate.min =
+    todayString();
+
+productDate.value =
+    todayString();
+
+
+/* =========================
+   TOAST
+========================= */
+
+let toastTimer;
+
+function showToast(
+    message,
+    type = "success"
+) {
+
+    clearTimeout(toastTimer);
+
+    toast.textContent =
+        message;
+
+    toast.className =
+        type;
+
+    toast.style.display =
+        "block";
+
+    toastTimer =
+        setTimeout(() => {
+
+            toast.style.display =
+                "none";
+
+        }, 4000);
+}
+
+
+/* =========================
+   SAUVEGARDE
+========================= */
+
+function saveProducts() {
+
+    localStorage.setItem(
+        "frigoProducts",
+        JSON.stringify(products)
+    );
+
+    renderProducts();
+}
+
+
+/* =========================
+   AJOUT
+========================= */
+
+function addProduct(
+    name,
+    date,
+    barcode
+) {
+
+    const product = {
+
+        id:
+            Date.now() +
+            Math.random(),
+
+        name:
+            name.trim(),
+
+        date:
+            date,
+
+        barcode:
+            barcode.trim(),
+
+        created:
+            new Date().toISOString()
+
+    };
+
+
+    products.push(product);
+
+    saveProducts();
+
+
+    showToast(
+        `✅ ${name} ajouté au frigo`,
+        "success"
+    );
+
+
+    checkAlerts();
+
+}
+
+
+/* =========================
+   SUPPRESSION
+========================= */
+
+function deleteProduct(id) {
+
+    products =
+        products.filter(
+            product =>
+                product.id !== id
+        );
+
+    saveProducts();
+
+    showToast(
+        "🗑 Produit supprimé",
+        "success"
+    );
+
+}
+
+
+/* =========================
+   NOMBRE DE JOURS
+========================= */
+
+function getDaysRemaining(
+    dateString
+) {
+
+    const today =
+        new Date();
+
+    today.setHours(
+        0, 0, 0, 0
+    );
+
+
+    const expiration =
+        new Date(
+            dateString +
+            "T00:00:00"
+        );
+
+    expiration.setHours(
+        0, 0, 0, 0
+    );
+
+
+    const difference =
+        expiration.getTime() -
+        today.getTime();
+
+
+    return Math.round(
+        difference /
+        86400000
+    );
+
+}
+
+
+/* =========================
+   FORMAT DATE
+========================= */
+
+function formatDate(
+    dateString
+) {
+
+    const parts =
+        dateString.split("-");
+
+    if (
+        parts.length !== 3
+    ) {
+        return dateString;
+    }
+
+    return (
+        parts[2] +
+        "/" +
+        parts[1] +
+        "/" +
+        parts[0]
+    );
+}
+
+
+/* =========================
+   PROTECTION HTML
+========================= */
+
+function escapeHtml(text) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+    div.textContent =
+        text;
+
+    return div.innerHTML;
+}
+
+
+/* =========================
+   AFFICHAGE
+========================= */
+
+function renderProducts() {
+
+    if (
+        products.length === 0
+    ) {
+
+        productsList.innerHTML = `
+
+            <div class="empty">
+
+                <div class="empty-icon">
+                    📦
+                </div>
+
+                Aucun produit
+                dans votre frigo.
+
+            </div>
+
+        `;
+
+        return;
+    }
+
+
+    const sorted =
+        [...products].sort(
+            (a, b) =>
+                a.date.localeCompare(
+                    b.date
+                )
+        );
+
+
+    productsList.innerHTML =
+        sorted.map(
+            product => {
+
+                const days =
+                    getDaysRemaining(
+                        product.date
+                    );
+
+
+                let className =
+                    "product";
+
+                let status;
+
+
+                if (
+                    days < 0
+                ) {
+
+                    className +=
+                        " expired";
+
+                    status =
+                        `🔴 Périmé depuis ${
+                            Math.abs(days)
+                        } jour(s)`;
+
+                }
+
+                else if (
+                    days === 0
+                ) {
+
+                    className +=
+                        " expired";
+
+                    status =
+                        "🔴 À consommer aujourd'hui";
+
+                }
+
+                else if (
+                    days <= 2
+                ) {
+
+                    className +=
+                        " warning";
+
+                    status =
+                        `🟠 ${days} jour(s) restant(s)`;
+
+                }
+
+                else {
+
+                    status =
+                        `🟢 ${days} jour(s) restant(s)`;
+
+                }
+
+
+                return `
+
+                    <div
+                        class="${className}">
+
+                        <div
+                            class="product-name">
+
+                            ${escapeHtml(
+                                product.name
+                            )}
+
+                        </div>
+
+
+                        ${
+                            product.barcode
+                            ?
+                            `
+                            <div
+                                class="product-code">
+
+                                Code :
+                                ${escapeHtml(
+                                    product.barcode
+                                )}
+
+                            </div>
+                            `
+                            :
+                            ""
+                        }
+
+
+                        <div
+                            class="product-date">
+
+                            📅 Péremption :
+                            <strong>
+                                ${formatDate(
+                                    product.date
+                                )}
+                            </strong>
+
+                            <br>
+
+                            ${status}
+
+                        </div>
+
+
+                        <button
+                            class="delete"
+                            onclick="deleteProduct(${product.id})">
+
+                            🗑 Supprimer
+
+                        </button>
+
+                    </div>
+
+                `;
+
+            }
+        ).join("");
+
+}
+
+
+/* =========================================================
+   SCANNER
+========================================================= */
+
+let html5QrCode = null;
+
+let scannerRunning = false;
+
+
+/* =========================
+   FORMATS
+========================= */
+
+const formats = [
+
+    Html5QrcodeSupportedFormats.EAN_13,
+
+    Html5QrcodeSupportedFormats.EAN_8,
+
+    Html5QrcodeSupportedFormats.UPC_A,
+
+    Html5QrcodeSupportedFormats.UPC_E,
+
+    Html5QrcodeSupportedFormats.CODE_128,
+
+    Html5QrcodeSupportedFormats.CODE_39,
+
+    Html5QrcodeSupportedFormats.ITF,
+
+    Html5QrcodeSupportedFormats.QR_CODE
+
+];
+
+
+/* =========================
+   DÉMARRER
+========================= */
+
+async function startScanner() {
+
+    if (
+        scannerRunning
+    ) {
+        return;
+    }
+
+
+    if (
+        !window.isSecureContext &&
+        location.hostname !==
+            "localhost" &&
+        location.hostname !==
+            "127.0.0.1"
+    ) {
+
+        showToast(
+            "❌ La caméra nécessite HTTPS.",
+            "error"
+        );
+
+        scannerMessage.innerHTML =
+            "⚠️ Ouvrez Frigo Smart avec HTTPS.";
+
+        return;
+    }
+
+
+    try {
+
+        html5QrCode =
+            new Html5Qrcode(
+                "reader",
+                {
+                    verbose: false
+                }
+            );
+
+
+        reader.style.display =
+            "block";
+
+        startScan.style.display =
+            "none";
+
+        stopScan.style.display =
+            "block";
+
+        scanCode.style.display =
+            "none";
+
+
+        scannerMessage.textContent =
+            "🔎 Recherche du code-barres...";
+
+
+        scannerRunning =
+            true;
+
+
+        await html5QrCode.start(
+
+            {
+                facingMode: {
+                    exact: "environment"
+                }
+            },
+
+            {
+                fps: 10,
+
+                qrbox: function(
+                    width,
+                    height
+                ) {
+
+                    const boxWidth =
+                        Math.min(
+                            Math.floor(
+                                width * 0.85
+                            ),
+                            400
+                        );
+
+                    const boxHeight =
+                        Math.min(
+                            Math.floor(
+                                height * 0.35
+                            ),
+                            180
+                        );
+
+                    return {
+                        width:
+                            boxWidth,
+                        height:
+                            boxHeight
+                    };
+
+                },
+
+                aspectRatio: 1.777778,
+
+                formatsToSupport:
+                    formats
+
+            },
+
+            onScanSuccess,
+
+            onScanFailure
+
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Scanner :",
+            error
+        );
+
+        scannerRunning =
+            false;
+
+        reader.style.display =
+            "none";
+
+        startScan.style.display =
+            "block";
+
+        stopScan.style.display =
+            "none";
+
+
+        showToast(
+            "❌ Impossible d'accéder à la caméra.",
+            "error"
+        );
+
+
+        scannerMessage.innerHTML =
+            "Vérifiez que Chrome a bien l'autorisation " +
+            "d'utiliser la caméra.";
+
+    }
+
+}
+
+
+/* =========================
+   SCAN RÉUSSI
+========================= */
+
+async function onScanSuccess(
+    decodedText,
+    decodedResult
+) {
+
+    if (
+        !scannerRunning
+    ) {
+        return;
+    }
+
+
+    scannerRunning =
+        false;
+
+
+    const code =
+        decodedText.trim();
+
+
+    codeValue.textContent =
+        code;
+
+
+    scanCode.style.display =
+        "block";
+
+
+    productBarcode.value =
+        code;
+
+
+    scannerMessage.textContent =
+        "✅ Code détecté !";
+
+
+    showToast(
+        "✅ Code-barres détecté",
+        "success"
+    );
+
+
+    await stopScanner();
+
+
+    /* Aller automatiquement
+       vers le nom */
+
+    setTimeout(
+        () => {
+
+            productName.focus();
+
+            productName.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+
+        },
+        300
+    );
+
+}
+
+
+/* =========================
+   SCAN EN COURS
+========================= */
+
+function onScanFailure(
+    error
+) {
+
+    /*
+     * Normal :
+     * cette fonction est appelée
+     * lorsque l'image actuelle
+     * ne contient pas encore
+     * de code.
+     */
+
+}
+
+
+/* =========================
+   ARRÊTER
+========================= */
+
+async function stopScanner() {
+
+    scannerRunning =
+        false;
+
+
+    if (
+        html5QrCode
+    ) {
+
+        try {
+
+            await html5QrCode.stop();
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                error
+            );
+
+        }
+
+
+        try {
+
+            html5QrCode.clear();
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                error
+            );
+
+        }
+
+
+        html5QrCode =
+            null;
+
+    }
+
+
+    reader.style.display =
+        "none";
+
+    startScan.style.display =
+        "block";
+
+    stopScan.style.display =
+        "none";
+
+}
+
+
+/* =========================
+   BOUTONS SCANNER
+========================= */
+
+startScan.addEventListener(
+    "click",
+    startScanner
+);
+
+stopScan.addEventListener(
+    "click",
+    async () => {
+
+        await stopScanner();
+
+        scannerMessage.textContent =
+            "Scanner arrêté.";
+
+    }
+);
+
+
+/* =========================================================
+   FORMULAIRE
+========================================================= */
+
+productForm.addEventListener(
+    "submit",
+    event => {
+
+        event.preventDefault();
+
+
+        const name =
+            productName.value.trim();
+
+        const date =
+            productDate.value;
+
+        const barcode =
+            productBarcode.value.trim();
+
+
+        if (!name) {
+
+            showToast(
+                "Veuillez entrer le nom du produit.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        if (!date) {
+
+            showToast(
+                "Veuillez choisir une date.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        addProduct(
+            name,
+            date,
+            barcode
+        );
+
+
+        productForm.reset();
+
+
+        productDate.value =
+            todayString();
+
+
+        scanCode.style.display =
+            "none";
+
+        codeValue.textContent =
+            "";
+
+    }
+);
+
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+function updateNotificationStatus() {
+
+    if (
+        !("Notification" in window)
+    ) {
+
+        notificationStatus.textContent =
+            "❌ Notifications non supportées.";
+
+        return;
+    }
+
+
+    const permission =
+        Notification.permission;
+
+
+    if (
+        permission === "granted"
+    ) {
+
+        notificationStatus.textContent =
+            "✅ Notifications autorisées.";
+
+        notificationButton.textContent =
+            "🔔 Notifications activées";
+
+    }
+
+    else if (
+        permission === "denied"
+    ) {
+
+        notificationStatus.textContent =
+            "❌ Notifications bloquées. " +
+            "Autorisez-les dans les paramètres de Chrome.";
+
+        notificationButton.textContent =
+            "🔔 Notifications bloquées";
+
+    }
+
+    else {
+
+        notificationStatus.textContent =
+            "⚪ Notifications non activées.";
+
+    }
+
+}
+
+
+async function requestNotifications() {
+
+    if (
+        !("Notification" in window)
+    ) {
+
+        showToast(
+            "Les notifications ne sont pas supportées.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    try {
+
+        const permission =
+            await Notification.requestPermission();
+
+
+        updateNotificationStatus();
+
+
+        if (
+            permission === "granted"
+        ) {
+
+            showToast(
+                "🔔 Notifications activées !",
+                "success"
+            );
+
+
+            /*
+             * Notification de test.
+             */
+
+            await sendNotification(
+                "Frigo Smart",
+                "🔔 Les notifications fonctionnent !"
+            );
+
+        }
+
+        else {
+
+            showToast(
+                "Les notifications n'ont pas été autorisées.",
+                "warning"
+            );
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(
+            error
+        );
+
+        showToast(
+            "Impossible d'activer les notifications.",
+            "error"
+        );
+
+    }
+
+}
+
+
+async function sendNotification(
+    title,
+    body
+) {
+
+    if (
+        !("Notification" in window)
+    ) {
+        return;
+    }
+
+
+    if (
+        Notification.permission !==
+        "granted"
+    ) {
+        return;
+    }
+
+
+    /*
+     * Si un Service Worker existe,
+     * on utilise une notification
+     * persistante.
+     */
+
+    if (
+        "serviceWorker" in navigator
+    ) {
+
+        try {
+
+            const registration =
+                await navigator.serviceWorker.ready;
+
+
+            await registration.showNotification(
+                title,
+                {
+                    body: body,
+                    icon: "icon-192.png",
+                    badge: "icon-192.png",
+                    tag: "frigo-smart"
+                }
+            );
+
+            return;
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "Service Worker notification:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /*
+     * Fallback.
+     */
+
+    try {
+
+        new Notification(
+            title,
+            {
+                body: body
+            }
+        );
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            error
+        );
+
+    }
+
+}
+
+
+notificationButton.addEventListener(
+    "click",
+    requestNotifications
+);
+
+
+/* =========================================================
+   ALERTES
+========================================================= */
+
+async function checkAlerts() {
+
+    if (
+        products.length === 0
+    ) {
+        return;
+    }
+
+
+    const expired =
+        products.filter(
+            product =>
+                getDaysRemaining(
+                    product.date
+                ) < 0
+        );
+
+
+    const today =
+        products.filter(
+            product =>
+                getDaysRemaining(
+                    product.date
+                ) === 0
+        );
+
+
+    const tomorrow =
+        products.filter(
+            product =>
+                getDaysRemaining(
+                    product.date
+                ) === 1
+        );
+
+
+    if (
+        expired.length > 0
+    ) {
+
+        const message =
+            `${expired.length} produit(s) sont périmé(s).`;
+
+
+        showToast(
+            "⚠️ " + message,
+            "warning"
+        );
+
+
+        await sendNotification(
+            "⚠️ Frigo Smart",
+            message
+        );
+
+
+        return;
+    }
+
+
+    if (
+        today.length > 0
+    ) {
+
+        const message =
+            `${today.length} produit(s) à consommer aujourd'hui.`;
+
+
+        showToast(
+            "🔴 " + message,
+            "warning"
+        );
+
+
+        await sendNotification(
+            "🔴 Frigo Smart",
+            message
+        );
+
+
+        return;
+    }
+
+
+    if (
+        tomorrow.length > 0
+    ) {
+
+        const message =
+            `${tomorrow.length} produit(s) arrivent à expiration demain.`;
+
+
+        showToast(
+            "🟠 " + message,
+            "warning"
+        );
+
+
+        await sendNotification(
+            "🟠 Frigo Smart",
+            message
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SERVICE WORKER
+========================================================= */
+
+if (
+    "serviceWorker" in navigator
+) {
+
+    window.addEventListener(
+        "load",
+        () => {
+
+            navigator.serviceWorker
+                .register(
+                    "sw.js"
+                )
+                .then(
+                    () => {
+
+                        console.log(
+                            "Service Worker activé"
+                        );
+
+                    }
+                )
+                .catch(
+                    error => {
+
+                        console.warn(
+                            "Service Worker :",
+                            error
+                        );
+
+                    }
+                );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   INITIALISATION
+========================================================= */
+
+renderProducts();
+
+updateNotificationStatus();
+
+setTimeout(
+    checkAlerts,
+    1000
+);
+
+
+/* Fonction disponible
+   pour les boutons */
+
+window.deleteProduct =
+    deleteProduct;
+
+
+/* Arrêt caméra si page quittée */
+
+window.addEventListener(
+    "pagehide",
+    () => {
+
+        stopScanner();
+
+    }
+);
+
+</script>
+
+</body>
+</html>
+```
